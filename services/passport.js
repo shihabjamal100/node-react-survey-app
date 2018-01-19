@@ -24,23 +24,19 @@ passport.use(
             clientID: keys.googleClientID,
             clientSecret: keys.googleClientSecret,
             callbackURL: '/auth/google/callback',
-            proxy: true
+            proxy: true                             // proxy = true basically allows the heroku proxy to work (because the callback route would otherwise be http:// instead of https://)
         }, 
-        (accesssToken, refreshToken, profile, done) => {
-            User.findOne( {googleId: profile.id} ).then( (existingUser) => {
-                if (existingUser)
-                {
-                    // We already have a record with the given profile id. No need to create new user.
-                    done(null, existingUser);
-                }
-                else
-                {
-                    // We don't have a user with the given profile id
-                    new User({ googleId: profile.id}).save().then( (user) => {
-                        console.log('Calling done');
-                        done(null, user);
-                    });
-                }
-            });
+        async (accesssToken, refreshToken, profile, done) => {
+            console.log(accesssToken);
+            const existingUser = await User.findOne( {googleId: profile.id} );
+            if (existingUser)
+            {
+                // We already have a record with the given profile id. No need to create new user.
+                return done(null, existingUser);
+            }
+            
+            // We don't have a user with the given profile id
+            const user = await new User({ googleId: profile.id}).save();
+            done(null, user);
         }
 ));
